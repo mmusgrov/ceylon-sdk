@@ -24,15 +24,22 @@ package ceylon.transaction.tm;
 import javax.naming.*;
 import javax.naming.spi.ObjectFactory;
 import javax.sql.XADataSource;
+
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.List;
 import java.util.Arrays;
+
+import org.jboss.modules.DependencySpec;
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleLoadException;
 import org.jboss.modules.ModuleIdentifier;
+import org.jboss.modules.ModuleLoader;
+import org.jboss.modules.filter.PathFilters;
+
+import ceylon.modules.jboss.runtime.CeylonModuleLoader;
 
 /**
  * @author <a href="mailto:mmusgrov@redhat.com">Mike Musgrove</a>
@@ -124,6 +131,26 @@ public class XADSWrapperObjectFactory implements ObjectFactory {
             moduleClassLoader = module.getClassLoader();
         }catch(ModuleLoadException x){
             throw new RuntimeException("Failed to load module for driver " + driver, x);
+        }
+        
+        // register ceylon.transaction in narnia
+        ModuleLoader moduleLoader = Module.getCallerModuleLoader();
+        if(moduleLoader instanceof CeylonModuleLoader){
+        	Module transactionModule = Module.getCallerModule();
+        	Module narniaModule = Module.forClass(com.arjuna.ats.arjuna.common.RecoveryEnvironmentBean.class);
+            DependencySpec dependency = DependencySpec.createModuleDependencySpec(
+                    PathFilters.acceptAll(),
+                    PathFilters.rejectAll(),
+                    moduleLoader,
+                    transactionModule.getIdentifier(),
+                    true
+                );
+
+        	try {
+				((CeylonModuleLoader) moduleLoader).updateModule(narniaModule, dependency);
+			} catch (ModuleLoadException e) {
+	            throw new RuntimeException("Failed to add ceylon.transaction dependency to narnia", e);
+			}
         }
 
         wrapper = new XADSWrapper(binding, driver, databaseName, host, port,

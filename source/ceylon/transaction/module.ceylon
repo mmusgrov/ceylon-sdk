@@ -68,6 +68,7 @@ module ceylon.transaction "1.1.0" {
 
     //import org.jboss.modules "1.1.3.GA"; // this one fails
     import org.jboss.modules "1.3.3.Final";
+    import ceylon.runtime "1.1.0";
 
     // ceylon.dbc dependencies
     shared import ceylon.dbc "1.1.0";
