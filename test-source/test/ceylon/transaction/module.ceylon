@@ -1,4 +1,4 @@
-module test.ceylon.transaction "1.0.0" {
+module test.ceylon.transaction "1.1.0" {
     import ceylon.test "1.1.0";
 
     // transaction manager dependencies

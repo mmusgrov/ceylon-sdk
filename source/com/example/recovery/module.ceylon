@@ -16,8 +16,8 @@
 "Transaction example using two databases"
 by("Mike Musgrove")
 license("http://www.apache.org/licenses/LICENSE-2.0")
-module com.example.recovery "1.0.0" {
-    import ceylon.transaction "1.0.0";
+module com.example.recovery "1.1.0" {
+    import ceylon.transaction "1.1.0";
 	// we need javax.transaction.xa.XAResource for registering a dummy XA resource
     import javax.transaction.api "1.2";
 

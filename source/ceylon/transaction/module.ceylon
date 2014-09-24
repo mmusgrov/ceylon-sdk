@@ -56,7 +56,7 @@
     """
 by("Mike Musgrove")
 license("Apache Software License 2.0")
-module ceylon.transaction "1.0.0" {
+module ceylon.transaction "1.1.0" {
 
     // transaction manager dependencies
     shared import org.jboss.narayana.jta "5.0.0.Final";
