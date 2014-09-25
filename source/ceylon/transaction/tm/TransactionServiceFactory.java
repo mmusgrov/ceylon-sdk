@@ -36,15 +36,12 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
 
-// recovery helpers
 import com.arjuna.ats.arjuna.recovery.RecoveryModule;
-import com.arjuna.ats.jta.recovery.XAResourceRecoveryHelper;
 import com.arjuna.ats.internal.jta.recovery.arjunacore.XARecoveryModule;
+import com.arjuna.ats.internal.arjuna.recovery.AtomicActionRecoveryModule;
 
 import java.util.Enumeration;
 import java.util.Vector;
-import ceylon.transaction.rm.RecoveryHelper;
-// end recovery helpers
 
 /**
  * @author <a href="mailto:mmusgrov@redhat.com">Mike Musgrove</a>
@@ -55,8 +52,6 @@ public class TransactionServiceFactory {
     private static InitialContext initialContext;
     private static Set<String> jndiBindings = new HashSet<String>();
     private static boolean replacedJndiProperties = false;
-    private static XARecoveryModule xarm = null;
-    private static Map<String, RecoveryHelper> recoveryHelpers = new HashMap<String, RecoveryHelper>();
 
     /**
      * Makes the transaction service available by bind various transaction related object into the default
@@ -69,7 +64,7 @@ public class TransactionServiceFactory {
             return;
 
         try {
-            Thread.currentThread().setContextClassLoader(TransactionServiceFactory.class.getClassLoader());
+//            Thread.currentThread().setContextClassLoader(TransactionServiceFactory.class.getClassLoader());
             initialContext =  new InitialContext();
 
             replacedJndiProperties =  jdbcPropertyManager.getJDBCEnvironmentBean().getJndiProperties().size() == 0;
@@ -118,11 +113,6 @@ public class TransactionServiceFactory {
             return;
 
         if (recoveryManager != null) {
-            synchronized (recoveryHelpers) {
-                for (RecoveryHelper rh : recoveryHelpers.values())
-                    xarm.removeXAResourceRecoveryHelper((XAResourceRecoveryHelper) rh);
-            }
-
             recoveryManager.terminate();
             recoveryManager = null;
         }
@@ -145,50 +135,19 @@ public class TransactionServiceFactory {
      static void startRecoveryService() {
         if (recoveryManager == null) {
             final RecoveryEnvironmentBean recoveryEnvironmentBean = recoveryPropertyManager.getRecoveryEnvironmentBean();
+            List<RecoveryModule> rms = new ArrayList<RecoveryModule> ();
 
-            recoveryEnvironmentBean.setRecoveryModuleClassNames(Arrays.asList(
-                    "com.arjuna.ats.internal.arjuna.recovery.AtomicActionRecoveryModule",
-                    "com.arjuna.ats.internal.jta.recovery.arjunacore.XARecoveryModule"));
+			rms.add(new AtomicActionRecoveryModule());
+			rms.add(new XARecoveryModule());
 
-//            ClassLoader cl = Thread.currentThread().getContextClassLoader();
-//            Thread.currentThread().setContextClassLoader(RecoveryManager.class.getClassLoader());
+            recoveryEnvironmentBean.setRecoveryModules(rms);
+
             recoveryManager = RecoveryManager.manager();
             recoveryManager.initialize();
-
-            Vector recoveryModules = recoveryManager.getModules();
-            if (recoveryModules != null) {
-                Enumeration modules = recoveryModules.elements();
-
-                while (modules.hasMoreElements()) {
-                    RecoveryModule m = (RecoveryModule) modules.nextElement();
-
-                    if (m instanceof XARecoveryModule) {
-                        synchronized (recoveryHelpers) {
-                            xarm = (XARecoveryModule) m;
-
-                            for (RecoveryHelper rh : recoveryHelpers.values())
-                                xarm.addXAResourceRecoveryHelper((XAResourceRecoveryHelper) rh);
-
-                            break;
-                        }
-                    }
-                }
-            }
         }
     }
 
     public static void registerJDBCXARecoveryHelper(String binding, String user, String password) {
-        //RecoveryHelper recoveryHelper = new RecoveryHelper(binding, user, password);
-        RecoveryHelper recoveryHelper = new RecoveryHelper(binding, user, password);
-
-        synchronized (recoveryHelpers) {
-            if (!recoveryHelpers.containsKey(binding)) {
-                recoveryHelpers.put(binding, recoveryHelper);
-
-                if (xarm != null)
-                    xarm.addXAResourceRecoveryHelper((XAResourceRecoveryHelper) recoveryHelper);
-            }
-        }
     }
 
     private static Set<String> registerJndiBindings(InitialContext initialContext) throws InitializationException {
