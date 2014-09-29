@@ -31,10 +31,10 @@ TransactionManager tm = transactionManager;
 String dbloc = "jdbc:h2:tmp/ceylondb";
 variable Integer nextKey = 5;
 
-//{String+} dsBindings2 = { "postgresql", "oracle_thin" };
+//{String+} dsBindings2 = { "db2", "postgresql", "oracle_thin" };
 //{String+} dsBindings2 = { "postgresql", "hsqldb" };
 {String+} dsBindings = { "h2" };
-{String+} dsBindings2 = { "db2", "postgresql" };
+//{String+} dsBindings = { "h2", "postgresql" };
 
 MutableMap<String,Sql> getSqlHelper({String+} bindings) {
     MutableMap<String,Sql> sqlMap = HashMap<String,Sql>();
@@ -149,27 +149,6 @@ void checkRowCounts(MutableMap<String,Integer> prev, MutableMap<String,Integer> 
     }
 }
 
-// Test XA transactions with one resource
-void sqlTest1() {
-    MutableMap<String,Sql> sqlMap = getSqlHelper(dsBindings);
-
-    // local commit
-    transactionalWork(false, true, sqlMap);
-    // XA commit
-    transactionalWork(true, true, sqlMap);
-}
-
-// Test XA transactions with multiple resources
-void sqlTest2(Boolean doInTxn) {
-    MutableMap<String,Sql> sqlMap = getSqlHelper(dsBindings2);
-
-    // XA abort
-    transactionalWork(doInTxn, false, sqlMap);
-
-    // XA commit
-    transactionalWork(doInTxn, true, sqlMap);
-}
-
 void init() {
     setProperty("com.arjuna.ats.arjuna.objectstore.objectStoreDir", "tmp");
     setProperty("com.arjuna.ats.arjuna.common.ObjectStoreEnvironmentBean.objectStoreDir", "tmp");
@@ -185,9 +164,9 @@ void init() {
     jndiServer.registerDriverSpec("org.h2.Driver", "org.h2", "1.3.168", "org.h2.jdbcx.JdbcDataSource");
     jndiServer.registerDSUrl("h2", "org.h2.Driver", dbloc, "sa", "sa");
 
-//    tm.getJndiServer().registerDriverSpec(
-//        "org.postgresql.Driver", "org.jumpmind.symmetric.jdbc.postgresql", "9.2-1002-jdbc4", "org.postgresql.xa.PGXADataSource");
-//    tm.getJndiServer().registerDSName(
+//    jndiServer.registerDriverSpec(
+//        "org.postgresql.Driver", "org.postgresql", "9.2-1002", "org.postgresql.xa.PGXADataSource");
+//    jndiServer.registerDSName(
 //        "postgresql", "org.postgresql.Driver", "ceylondb", "localhost", 5432, "sa", "sa");
 }
 
@@ -201,7 +180,7 @@ void enlistDummyXAResources() {
 
     Transaction txn = transactionManager.transaction;
 
-    DummyXAResource dummyResource1 = DummyXAResource();
+    DummyXAResource dummyResource1;
 
     txn.enlistResource(dummyResource1);
 }

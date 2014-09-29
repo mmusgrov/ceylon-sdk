@@ -19,7 +19,7 @@ license("http://www.apache.org/licenses/LICENSE-2.0")
 module example.ceylon.transaction.recovery "1.1.0" {
     import ceylon.transaction "1.1.0";
 	// we need javax.transaction.xa.XAResource for registering a dummy XA resource
-    import javax.transaction.api "1.2";
+    shared import javax.transaction.api "1.2";
 
     // ceylon.dbc dependencies
     import ceylon.collection "1.1.0";
@@ -33,7 +33,7 @@ module example.ceylon.transaction.recovery "1.1.0" {
     //import org.jumpmind.symmetric.jdbc.postgresql "9.2-1002-jdbc4";
 	//import com.ibm.db2.jcc "9.7";
 
-    //import org.postgresql "9.2-1002";
+    import org.postgresql "9.2-1002";
     //import org.hsqldb.hsqldb "20140210.123437-60";
     //import org.hsqldb.hsqldb "2.3.1";
 	//import oracle.jdbc.driver "10.2.0.4";
