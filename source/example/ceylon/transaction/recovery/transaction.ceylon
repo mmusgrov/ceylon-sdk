@@ -14,11 +14,23 @@ import ceylon.transaction.tm {
     jndiServer
 }
 
+import java.util {
+    Properties
+}
+
 import java.lang {
     System {
         setProperty
     }
 }
+
+import com.arjuna.ats.jdbc {
+    TransactionalDriver {
+        \iXADS_PROP_NAME=XADataSource
+    }
+} // XXX
+import java.sql { DriverManager, Connection } // XXX
+import org.h2.jdbcx { JdbcDataSource } // XXX
 
 import javax.sql {
     DataSource
@@ -31,12 +43,62 @@ import javax.transaction {
 }
 
 TransactionManager tm = transactionManager;
-String dbloc = "jdbc:h2:tmp/ceylondb";
 variable Integer nextKey = 5;
 
 //{String+} dsBindings2 = { "db2", "postgresql", "oracle_thin", "hsqldb" };
 // a list of datasource (JNDI names) to enlist into a transaction
 {String+} dsBindings = { "h2" };
+
+//XXXXXXXXXXX
+
+String dbloc1 = "jdbc:h2:tmp/ceylondb";
+String dbloc2 = "jdbc:h2:tmp/ceylondb";
+String dblocx = "jdbc:h2:/home/mmusgrov/source/forks/ceylon/ceylon-sdk/tmp/ceylondb";
+
+JdbcDataSource createDataSource(String url) {
+    value ds = JdbcDataSource();
+    ds.url=url;
+    ds.user="sa";
+    ds.password="sa";
+    return ds;
+}
+
+void registerRecoveryDataSource() {
+    tm.registerXAResourceRecoveryDataSource(createDataSource(dbloc1)); //, dbloc, "sa", "sa");
+}
+
+void initTransactionalDriver() {
+   setProperty("jdbc.drivers", "org.h2.Driver");
+   DriverManager.registerDriver(TransactionalDriver());
+}
+
+String txDriverUrl = "jdbc:arjuna:";
+shared Connection newConnectionFromXADataSource(DataSource dataSource)() {
+    Properties dbProperties = Properties();
+
+    dbProperties.put(\iXADS_PROP_NAME, dataSource);
+    return DriverManager.getConnection(txDriverUrl, dbProperties);
+}
+
+MutableMap<String,Sql> getSqlHelpers({String+} bindings, Boolean doInit) {
+    MutableMap<String,Sql> sqlMap = HashMap<String,Sql>();
+
+    for (dsName in bindings) {
+        Sql sql = Sql(newConnectionFromXADataSource(createDataSource(dbloc2)));
+        sqlMap.put(dsName, sql);
+        if (doInit) {
+           initDb(sql);
+        }
+        print("db ``dsName`` registered");
+    }
+
+    return sqlMap;
+}
+
+
+//XXXXXXXXXXX
+
+
 
 MutableMap<String,Sql> getSqlHelper({String+} bindings) {
     MutableMap<String,Sql> sqlMap = HashMap<String,Sql>();
@@ -154,20 +216,25 @@ void checkRowCounts(MutableMap<String,Integer> prev, MutableMap<String,Integer> 
     }
 }
 
-void init() {
+void init(Boolean recovery) {
     setProperty("com.arjuna.ats.arjuna.objectstore.objectStoreDir", "tmp");
     setProperty("com.arjuna.ats.arjuna.common.ObjectStoreEnvironmentBean.objectStoreDir", "tmp");
 
-    tm.start(false);
+    tm.start(recovery);
 
     if (tm.transactionActive) {
         print("Old transaction still associated with thread");
         throw;
     }
 
+// XX
+    initTransactionalDriver();
+    registerRecoveryDataSource();
+// XX
+
     // programatic method of registering datasources (the alternative is to use a config file)
-    jndiServer.registerDriverSpec("org.h2.Driver", "org.h2", "1.3.168", "org.h2.jdbcx.JdbcDataSource");
-    jndiServer.registerDSUrl("h2", "org.h2.Driver", dbloc, "sa", "sa");
+//jndiServer.registerDriverSpec("org.h2.Driver", "org.h2", "1.3.168", "org.h2.jdbcx.JdbcDataSource");
+//jndiServer.registerDSUrl("h2", "org.h2.Driver", dbloc, "sa", "sa");
 
     // if you have postgresql db then you would register is as follows:
 //    jndiServer.registerDriverSpec(
@@ -186,20 +253,30 @@ void enlistDummyXAResources() {
 
     Transaction txn = transactionManager.transaction;
 
-    DummyXAResource dummyResource1 = DummyXAResource();
+    DummyXAResource dummyResource = DummyXAResource();
 
-    txn.enlistResource(dummyResource1);
+    txn.enlistResource(dummyResource);
 }
 
 "The runnable method of the module."
 by("Mike Musgrove")
 shared void run() {
-    init();
+
+    Boolean recovery = process.arguments.size > 0;
+
+    String? arg = process.arguments.first;
+    String v =  (arg else "null");
+    print("arg is ``v``");
+
+    init(recovery);
  
-    MutableMap<String,Sql> sqlMap = getSqlHelper(dsBindings);
+    MutableMap<String,Sql> sqlMap = getSqlHelpers(dsBindings, !recovery);
 
-    transactionalWork(true, true, sqlMap);
-
-    fini();
+    if (!recovery) {
+        transactionalWork(true, true, sqlMap);
+        fini();
+    } else {
+        print("recovery manager is running");
+    }
 }
 

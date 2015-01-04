@@ -2,6 +2,9 @@ This example shows how run a transaction that uses two resources (an h2 database
 
 The txn-store.tar archive contains an example that demonstrates recovery which you will need to unpack:
 
+  cd ../ceylon-dist/
+  export CEYLON_HOME=`pwd`
+  export PATH=$CEYLON_HOME/dist/bin:$PATH
   cd <ceylon-sdk dirctory> 
   rm -rf tmp; tar -xf source/example/ceylon/transaction/recovery/txn-store.tar
   java -jar ./test-deps/org/h2/1.3.168/org.h2-1.3.168.jar &

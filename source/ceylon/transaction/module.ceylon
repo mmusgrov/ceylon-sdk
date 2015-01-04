@@ -112,7 +112,8 @@ by("Mike Musgrove", "Stéphane Épardaud")
 license("Apache Software License 2.0")
 module ceylon.transaction "1.1.0" {
     // transaction manager dependencies
-    shared import org.jboss.narayana.jta "5.0.0.Final";
+    //shared import org.jboss.narayana.jta "5.0.0.Final";
+    shared import org.jboss.narayana.jta "5.0.4.Final-SNAPSHOT";
 
     shared import java.base "7";
     shared import java.logging "7";

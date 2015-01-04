@@ -23,6 +23,8 @@ module example.ceylon.transaction.recovery "1.1.0" {
     import ceylon.collection "1.1.0";
     import ceylon.dbc "1.1.0";
 
-	shared import ceylon.interop.java "1.1.0";
+    shared import ceylon.interop.java "1.1.0";
     import java.base "7";
+
+    import org.h2 "1.3.168";
 }

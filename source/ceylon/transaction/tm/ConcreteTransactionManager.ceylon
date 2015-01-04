@@ -6,6 +6,10 @@ import javax.transaction {
     }
 }
 
+import javax.sql {
+    XADataSource
+}
+
 class ConcreteTransactionManager() satisfies TransactionManager {
 
     shared JndiServer jndiServer = JndiServer();
@@ -84,4 +88,9 @@ class ConcreteTransactionManager() satisfies TransactionManager {
 
         return ok;
     }
+
+    shared actual void registerXAResourceRecoveryDataSource(XADataSource dataSource) {
+        package.registerXAResourceRecoveryDataSource(dataSource);
+    }
+
 }

@@ -10,6 +10,10 @@ import javax.transaction {
     JavaTransactionManager=TransactionManager
 }
 
+import javax.sql {
+    XADataSource
+}
+
 see (`interface RecoveryManager`)
 shared interface TransactionManager {
     
@@ -33,6 +37,7 @@ shared interface TransactionManager {
     
     shared formal JavaTransactionManager? transactionManager;
     
+    shared formal void registerXAResourceRecoveryDataSource(XADataSource dataSource);
 }
 
 // package level transaction manager

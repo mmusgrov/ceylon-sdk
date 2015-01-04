@@ -69,6 +69,11 @@ import java.lang {
 import java.sql {
     DriverManager
 }
+
+import javax.sql {
+    XADataSource
+}
+
 import java.util {
     HashSet,
     Set,
@@ -88,6 +93,7 @@ variable RecoveryManager? recoveryManager = null;
 variable Boolean initialized = false;
 InitialContext initialContext = InitialContext();
 variable Boolean replacedJndiProperties = false;
+XARecoveryModule xARecoveryModule = XARecoveryModule();
 
 /**
  * Makes the transaction service available by bind various transaction related object into the default
@@ -167,12 +173,25 @@ shared /*synchronized*/ void stop() {
     initialized = false;
 }
 
+shared void registerXAResourceRecoveryDataSource(XADataSource dataSource) {
+//    XADataSource dataSource,
+//    String bindingOrURL,
+//    String user,
+//    String password) {
+
+    //RecoveryHelper rh = RecoveryHelper(dataSource, bindingOrURL, user, password);
+    RecoveryHelper rh = RecoveryHelper(dataSource);
+
+    xARecoveryModule.addXAResourceRecoveryHelper(rh);
+    //xARecoveryModule.addXAResourceRecoveryHelper((XAResourceRecoveryHelper) rh);
+}
+
  void startRecoveryService() {
     if (!recoveryManager exists) {
         recoveryEnvironmentBean.recoveryModules 
                 = Arrays.asList<RecoveryModule>
                 (AtomicActionRecoveryModule(), 
-                 XARecoveryModule());
+                 xARecoveryModule);
         
         value rm = RecoveryManager.manager();
         rm.initialize();
