@@ -1,4 +1,4 @@
-[String*] supportedDrivers = [
+shared [String*] supportedDrivers = [
 
 "org.postgresql.Driver",
 "oracle.jdbc.driver.OracleDriver",

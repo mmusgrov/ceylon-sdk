@@ -1,4 +1,3 @@
-import ceylon.transaction.datasource { ... }
 
 """This module enables updates to multiple databases within 
    a single transaction. It is integrated with 
@@ -160,17 +159,16 @@ import ceylon.transaction.datasource { ... }
    [Java properties format]: http://docs.oracle.com/javase/8/docs/api/java/util/Properties.html#load-java.io.Reader-"""
 by ("Mike Musgrove", "Stéphane Épardaud", "Gavin King")
 license ("Apache Software License 2.0")
-module ceylon.transaction "1.1.1" {
-    // transaction manager dependencies
-    import org.jboss.narayana.jta "5.0.0.Final";
+module ceylon.transaction "1.1.2" {
+    shared import org.jboss.narayana.jta "5.0.5.Final-SNAPSHOT";
 
     import java.base "7";
+    shared import java.logging "7";
     import javax.naming "7";
-    import java.jdbc "7";
+    shared import java.jdbc "7";
     import javax.transaction.api "1.2";
 
-    //import org.jboss.modules "1.1.3.GA"; // this one fails
-    import org.jboss.modules "1.3.3.Final";
+    //import org.jboss.modules "1.3.3.Final";
     import ceylon.runtime "1.1.1";
     
     import ceylon.interop.java "1.1.1";

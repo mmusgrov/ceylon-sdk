@@ -5,10 +5,6 @@ import ceylon.file {
 import ceylon.transaction {
     transactionManager
 }
-import ceylon.transaction.internal {
-    registerDataSources
-}
-
 import java.lang {
     System {
         setProperty,
@@ -25,7 +21,6 @@ class RecoveryManager() {
         setProperty("com.arjuna.ats.arjuna.common.ObjectStoreEnvironmentBean.objectStoreDir", userDir);
         
         transactionManager.start(true);
-        bindDSProperties(dataSourceConfigPropertyFile);
     }
 
     shared void scan() {
@@ -42,9 +37,6 @@ class RecoveryManager() {
                 print("scanning");
                 scan();
                 print("finished scan");
-            //} else if (line.contains("dbc.properties=")) {
-                //String? propFile = line.split((Character c) => c == '=').rest.first;
-                //bindDSProperties(propFile);
             } else {
                 print("Valid command options are:");
                 print("\tquit - shutdown the recovery manager and exit");
@@ -62,7 +54,7 @@ class RecoveryManager() {
             value path = parsePath(propFile);
             if (is File f = path.resource) {
                 print("configuring datasources via properties file ``propFile``");
-                registerDataSources(propFile);
+//                registerDataSources(propFile);
             } else {
                 print("warning: no datasources configured - property file ``propFile`` does not exist");
             }

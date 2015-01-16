@@ -1,4 +1,9 @@
 
+import javax.sql {
+    XADataSource
+}
+import java.sql { Connection }
+
 shared interface TransactionManager {
     
     "Start and initialize an instance of the transaction 
@@ -51,8 +56,14 @@ shared interface TransactionManager {
     
     "Run a recovery scan using the in-process transaction 
      recovery service, if any."
-    shared formal void recoveryScan();
+  shared formal void recoveryScan();
     
+  shared formal void setTimeout(Integer timeout);
+  shared formal void registerXAResourceRecoveryDataSource(XADataSource dataSource);
+  shared formal Boolean isDriverSupported(String driver);
+  shared formal Connection newConnectionFromXADataSource(XADataSource dataSource);
+  shared formal Connection newConnectionFromXADataSourceWithCredentials
+        (XADataSource dataSource, [String, String] userNameAndPassword);
 }
 
 shared TransactionManager transactionManager 
