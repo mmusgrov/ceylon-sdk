@@ -47,19 +47,4 @@ class RecoveryManager() {
             process.write("> ");
         }
     }
-
-    void bindDSProperties(String? dataSourceConfigPropertyFile) {
-        if (exists dataSourceConfigPropertyFile) {
-            value propFile = dataSourceConfigPropertyFile.trimmed;
-            value path = parsePath(propFile);
-            if (is File f = path.resource) {
-                print("configuring datasources via properties file ``propFile``");
-//                registerDataSources(propFile);
-            } else {
-                print("warning: no datasources configured - property file ``propFile`` does not exist");
-            }
-         } else {
-             print("warning: no datasources configured - missing property file");
-         }
-    }
 }

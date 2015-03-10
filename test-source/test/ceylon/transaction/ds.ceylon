@@ -58,13 +58,6 @@ XADataSource createDataSource(String url) {
     return ds;
 }
 
-void enlistDummyXAResources(Transaction? tx) {
-    assert (exists tx);
-    DummyXAResource dummyResource = DummyXAResource();
-
-    tx.enlistResource(dummyResource);
-}
-
 Boolean updateTable(Sql sq, String dml, Boolean ignoreErrors) {
     try {
         sq.Update(dml).execute();
@@ -98,12 +91,27 @@ Integer insertTable(Collection<Sql> dbs) {
     return 2;
 }
 
-Integer runTxn(Integer how, MutableMap<String,Sql> sqlMap, variable Integer nextKV) {
+MutableMap<String,Integer> countRows(MutableMap<String,Sql> sqlMap) {
+    value values = HashMap<String,Integer>();
+
+    for (entry in sqlMap) {
+      Sql sql = entry.item;
+      value count = sql.Select("SELECT COUNT(*) FROM CEYLONKV").singleValue<Integer?>();
+      assert (exists count);
+      values.put (entry.key, count);
+    }
+
+    return values;
+}
+
+Integer runTxn(Integer how, Boolean enlistDummyResource, MutableMap<String,Sql> sqlMap, variable Integer nextKV) {
     Transaction? transaction;
 
     if (how != tx_NONE) {
         transaction = transactionManager.beginTransaction();
-        enlistDummyXAResources(transaction);
+        if (enlistDummyResource) {
+            enlistDummyXAResources(transaction);
+        }
     } else {
         transaction = null;
     }
@@ -121,6 +129,7 @@ Integer runTxn(Integer how, MutableMap<String,Sql> sqlMap, variable Integer next
             list.add(rowCnt + 1);
         }
     }
+
     if (how == tx_COMMIT) {
         assert (exists transaction );
         transaction.commit();
@@ -147,6 +156,13 @@ Integer runTxn(Integer how, MutableMap<String,Sql> sqlMap, variable Integer next
     return nextKV;
 }
 
+void enlistDummyXAResources(Transaction? tx) {
+    assert (exists tx);
+    DummyXAResource dummyResource = DummyXAResource();
+
+    tx.enlistResource(dummyResource);
+}
+
 MutableMap<String,Sql> getSqlHelper({String+} bindings) {
     value sqlMap = HashMap<String,Sql>();
     for (dsName in bindings) {
@@ -163,37 +179,30 @@ void sqlTest1() {
     value sqlMap = getSqlHelper(dsBindings2);
 
     // local commit
-    nextKey = runTxn(tx_NONE, sqlMap, nextKey);
+    nextKey = runTxn(tx_NONE, false, sqlMap, nextKey);
     // XA commit
-    nextKey = runTxn(tx_COMMIT, sqlMap, nextKey);
+    nextKey = runTxn(tx_COMMIT, false, sqlMap, nextKey);
+}
+
+// Test XA transactions with one resource
+test
+void sqlTest2a() {
+    value sqlMap = getSqlHelper(dsBindings);
+
+    nextKey = runTxn(tx_ROLLBACK, false, sqlMap, nextKey);
+    nextKey = runTxn(tx_COMMIT, false, sqlMap, nextKey);
 }
 
 // Test XA transactions with multiple resources
-void sqlTest2(Boolean doInTxn) {
-    value sqlMap = getSqlHelper(dsBindings);
-
-    // XA abort
-    nextKey = runTxn(tx_ROLLBACK, sqlMap, nextKey);
-
-    // XA commit
-    nextKey = runTxn(tx_COMMIT, sqlMap, nextKey);
-}
-
-test
-void sqlTest2a() {
-    nextKey = runTxn(tx_NONE, getSqlHelper(dsBindings), nextKey);
-    sqlTest2(false);
-}
-
 test
 void sqlTest2b() {
     value sqlMap = getSqlHelper(dsBindings);
-    nextKey = runTxn(tx_ROLLBACK, sqlMap, nextKey);
-    nextKey = runTxn(tx_COMMIT, sqlMap, nextKey);
-    //sqlTest2(true);
+
+    nextKey = runTxn(tx_ROLLBACK, true, sqlMap, nextKey);
+    nextKey = runTxn(tx_COMMIT, true, sqlMap, nextKey);
 }
 
-// same as sqlTest2a and sqlTest2b but with a callable
+// same as sqlTest2b but with a callable
 test
 void sqlTest3() {
     value sqlMap = getSqlHelper(dsBindings);
@@ -206,6 +215,8 @@ void sqlTest3() {
                 sql.Update("INSERT INTO CEYLONKV(key,val) VALUES (?, ?)").
                             execute( "k" + nextKey.string, "v" + nextKey.string);
             }
+
+            enlistDummyXAResources(transactionManager.currentTransaction);
 
             return false; // abort transaction
         }
@@ -226,6 +237,8 @@ void sqlTest3() {
                 sql.Update("INSERT INTO CEYLONKV(key,val) VALUES (?, ?)").
                             execute( "k" + nextKey.string, "v" + nextKey.string);
             }
+            
+            enlistDummyXAResources(transactionManager.currentTransaction);
 
             return true; // commit transaction
         }
@@ -237,6 +250,8 @@ void sqlTest3() {
         assert (exists c = counts3[entry.key]);
         assert(entry.item + 1 == c);
     }
+
+    nextKey = nextKey + 1;
 }
 
 test
@@ -262,17 +277,4 @@ void localTxnTest() {
     }
 
     updateTable(sql, "DROP TABLE CEYLONKV", true);
-}
-
-MutableMap<String,Integer> countRows(MutableMap<String,Sql> sqlMap) {
-    value values = HashMap<String,Integer>();
-
-    for (entry in sqlMap) {
-      Sql sql = entry.item;
-      value count = sql.Select("SELECT COUNT(*) FROM CEYLONKV").singleValue<Integer?>();
-      assert (exists count);
-      values.put (entry.key, count);
-    }
-
-    return values;
 }
