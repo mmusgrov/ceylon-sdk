@@ -1,4 +1,4 @@
-package ceylon.transaction.recovery;
+package ceylon.transaction.internal;
 
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;

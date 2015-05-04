@@ -1,10 +1,9 @@
 
 """This module enables updates to multiple databases within 
    a single transaction. It is integrated with 
-   [[module ceylon.dbc]] but you do need to create and pass
-   an XA capable datasource to [[ceylon.dbc::Sql]].
-   
-   First, obtain a reference to the 
+   [[module ceylon.dbc]].
+
+   First, obtain a reference to the
    [[transaction manager|TransactionManager]] by importing 
    its [[singleton instance|transactionManager]]:
    
@@ -17,56 +16,14 @@
        tm.start();
    
    The `TransactionManager` needs to know about every JDBC
-   [[datasource|javax.sql::DataSource]] so that it can 
+   [[datasource|javax.sql::XADataSource]] so that it can
    intercept calls and automatically enlist the datasource 
    as an XA resource in the current transaction. Therefore, 
-   the datasource must be XA-capable.
-   
-   Specifically, the `TransactionManager` needs to know the 
-   details of:
-   
-    - the module that provides the database driver, and 
-    - the connection details for the datasource.
-   
-   This information can be provided in a java properties 
-   file or programatically:
-   
-   - The location of a the properties file is set via a 
-     process property named `dbc.properties`. The format 
-     follows the [Java properties format][] and an example 
-     is provided with the tests for this module.
-   - Alternatively, the information may be provided by first
-     calling [[registerDriver]] and then one of 
-     [[registerDataSourceUrl]] or [[registerDataSourceName]].
-     
-   For example, to register an h2 datasource programmatically:
-     
-           registerDriver {
-               driver = "org.h2.Driver"; 
-               moduleAndVersion = ["org.h2", "1.3.168"];
-               className = "org.h2.jdbcx.JdbcDataSource"
-           };
-           registerDataSourceUrl {
-               "h2"; 
-               driver = "org.h2.Driver"; 
-               url = "jdbc:h2:tmp/ceylondb"; 
-               userAndPassword = ["sa", "sa"]
-           };
-     
-   Where `registerDriver()` accepts:
-   
-   - the class name of the JDBC driver, 
-   - the name and version of the module that provides the 
-     driver, and 
-   - the java class name of the XA datasource.
-   
-   Note that the JDBC driver `.jar` must be available to 
-   Ceylon as a module in either a Ceylon module repository
-   or a Maven repository.
-   
-   Finally, `registerDataSourceUrl()` or 
-   `registerDataSourceName()` specify details of how to 
-   connect to the database.
+   the datasource must be XA-capable. If you use the method
+   [[ceylon.dbc::connections]]:newConnectionFromXADataSource
+   to obtain XA datasources then the TransactionManager will
+   automatically ensure that work done on the returned connection
+   is tranactional.
    
    Note that not all database drivers correctly support XA 
    (particularly in the area of recovering from failures), 
@@ -87,20 +44,13 @@
    in which case you will need to manually resolve any in 
    doubt transaction involving that datasource.
 
-   The registration process makes the resource available as 
-   a datasource via JNDI:
+
    
-       assert (is DataSource ds1 = InitialContext().lookup("h2"));
-       assert (is DataSource ds2 = InitialContext().lookup("pgsql"));
+   Now you may use the XA datasource connection just like any other
+   datasource connection:
    
-   (Note that you must obtain the datasource via this lookup 
-   mechanism. You may not instantiate it directly.)
-   
-   Now you may use the XA datasource just like any other 
-   datasource:
-   
-       Sql sql1 = Sql(ds1);
-       Sql sql2 = Sql(ds2);
+       Sql sql1 = Sql(conn1);
+       Sql sql2 = Sql(conn2);
    
    But to make updates to both within a single transaction 
    you must demarcate the transaction boundaries, usually
@@ -130,12 +80,12 @@
    
    In order to correctly recover such transactions, a 
    non-volatile log is created on the local file system 
-   after the prepare phase which is later deleted after a s
-   uccessful commit or after a successful recovery attempt.
-   The location of this store defaults to a directory called
-   `tmp` in the directory from where the ceylon application 
-   was started. The default can be changed by setting a 
-   process property called:
+   after the prepare phase which is later deleted when the
+   transaction finishes (either after a successful commit
+   or after a successful recovery attempt).
+   The location of this store defaults to the directory
+   from where the ceylon application was started. The default
+   can be changed by setting a process property called:
 
        com.arjuna.ats.arjuna.common.ObjectStoreEnvironmentBean.objectStoreDir
 
